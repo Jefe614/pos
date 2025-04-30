@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- Product Selection -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5>Products</h5>
+                <input type="text" id="barcodeInput" class="form-control" placeholder="Scan barcode..." autofocus>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table" id="cartTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Cart items will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Section -->
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-light">
+                <h5>Payment</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Total: <span id="totalAmount">$0.00</span></h6>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <select class="form-select" id="paymentMethod">
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="mobile">Mobile Payment</option>
+                    </select>
+                </div>
+                
+                <button id="completeSale" class="btn btn-primary w-100 py-2">
+                    Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'pos/receipt_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+    if(e.key === 'Enter') {
+        const barcode = this.value;
+        // AJAX call to find product by barcode
+        fetch(`/api/products/?barcode=${barcode}`)
+            .then(response => response.json())
+            .then(product => {
+                if(product) {
+                    addToCart(product);
+                    this.value = '';
+                }
+            });
+    }
+});
+</script>
+{% endblock %}

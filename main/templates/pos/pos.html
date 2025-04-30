@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Product Selection -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Products</h5>
+                        <div class="w-50">
+                            <input type="text" id="barcodeInput" class="form-control" placeholder="Scan barcode..." autofocus>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Category Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="categoryTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#all">All</a>
+                        </li>
+                        {% for category in categories %}
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#cat{{ category.id }}">{{ category.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <!-- Product Grid -->
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="all">
+                            <div class="row">
+                                {% for product in products %}
+                                <div class="col-md-3 mb-3">
+                                    <button class="btn btn-outline-primary w-100 product-btn" 
+                                            data-id="{{ product.id }}"
+                                            data-name="{{ product.name }}"
+                                            data-price="{{ product.price }}"
+                                            data-barcode="{{ product.barcode }}">
+                                        <div>{{ product.name }}</div>
+                                        <div class="fw-bold">${{ product.price }}</div>
+                                        <small class="text-muted">Stock: {{ product.stock }}</small>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        {% for category in categories %}
+                        <div class="tab-pane fade" id="cat{{ category.id }}">
+                            <div class="row">
+                                {% for product in products %}
+                                {% if product.category == category %}
+                                <div class="col-md-3 mb-3">
+                                    <button class="btn btn-outline-primary w-100 product-btn" 
+                                            data-id="{{ product.id }}"
+                                            data-name="{{ product.name }}"
+                                            data-price="{{ product.price }}"
+                                            data-barcode="{{ product.barcode }}">
+                                        <div>{{ product.name }}</div>
+                                        <div class="fw-bold">${{ product.price }}</div>
+                                        <small class="text-muted">Stock: {{ product.stock }}</small>
+                                    </button>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cart and Payment -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5>Current Sale</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="cartTable">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Qty</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product_id, item in cart.items %}
+                                <tr data-id="{{ product_id }}">
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>${{ item.price }}</td>
+                                    <td>${{ item.total }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger remove-item" data-id="{{ product_id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h5>Summary</h5>
+                        <table class="table">
+                            <tr>
+                                <td>Subtotal:</td>
+                                <td class="text-end" id="cartSubtotal">${{ subtotal|default:"0.00" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Tax (10%):</td>
+                                <td class="text-end" id="cartTax">${{ tax|default:"0.00" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Discount:</td>
+                                <td class="text-end" id="cartDiscount">${{ discount|default:"0.00" }}</td>
+                            </tr>
+                            <tr class="fw-bold">
+                                <td>Total:</td>
+                                <td class="text-end" id="cartTotal">${{ total|default:"0.00" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <form method="post" id="paymentForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Customer</label>
+                            <select class="form-select" name="customer" id="customerSelect">
+                                <option value="">Walk-in Customer</option>
+                                {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select class="form-select" name="payment_method" required id="paymentMethod">
+                                <option value="">Select method</option>
+                                <option value="cash">Cash</option>
+                                <option value="card">Credit Card</option>
+                                <option value="mobile">Mobile Payment</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="amountPaidField">
+                            <label class="form-label">Amount Paid</label>
+                            <input type="number" class="form-control" name="amount_paid" min="0" step="0.01" id="amountPaid">
+                        </div>
+                        
+                        <div class="mb-3 d-none" id="changeField">
+                            <label class="form-label">Change</label>
+                            <input type="text" class="form-control" id="changeAmount" readonly>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 py-2" id="completeSale">
+                            Complete Sale
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Barcode scanning
+    $('#barcodeInput').focus();
+    
+    $('#barcodeInput').keypress(function(e) {
+        if(e.which === 13) {
+            const barcode = $(this).val().trim();
+            if(barcode) {
+                $.get(`{% url 'product_by_barcode' %}?barcode=${barcode}`, function(data) {
+                    if(data.error) {
+                        alert(data.error);
+                    } else {
+                        addToCart(data.id, 1);
+                    }
+                    $('#barcodeInput').val('').focus();
+                });
+            }
+        }
+    });
+    
+    // Product buttons
+    $('.product-btn').click(function() {
+        const productId = $(this).data('id');
+        addToCart(productId, 1);
+    });
+    
+    // Remove item from cart
+    $(document).on('click', '.remove-item', function() {
+        const productId = $(this).data('id');
+        removeFromCart(productId);
+    });
+    
+    // Payment method change
+    $('#paymentMethod').change(function() {
+        if($(this).val() === 'cash') {
+            $('#amountPaidField').removeClass('d-none');
+            $('#changeField').removeClass('d-none');
+        } else {
+            $('#amountPaidField').addClass('d-none');
+            $('#changeField').addClass('d-none');
+            $('#amountPaid').val($('#cartTotal').text().replace('$', ''));
+        }
+    });
+    
+    // Amount paid calculation
+    $('#amountPaid').keyup(function() {
+        const total = parseFloat($('#cartTotal').text().replace('$', ''));
+        const paid = parseFloat($(this).val()) || 0;
+        const change = paid - total;
+        
+        if(change >= 0) {
+            $('#changeAmount').val('$' + change.toFixed(2));
+        } else {
+            $('#changeAmount').val('Insufficient');
+        }
+    });
+    
+    // Form submission
+    $('#paymentForm').submit(function(e) {
+        e.preventDefault();
+        
+        if($('#paymentMethod').val() === '') {
+            alert('Please select payment method');
+            return;
+        }
+        
+        if($('#paymentMethod').val() === 'cash' && parseFloat($('#amountPaid').val()) < parseFloat($('#cartTotal').text().replace('$', ''))) {
+            alert('Amount paid is less than total');
+            return;
+        }
+        
+        $.post('{% url 'pos' %}', $(this).serialize(), function(data) {
+            if(data.success) {
+                window.location.href = data.redirect_url;
+            }
+        });
+    });
+});
+
+function addToCart(productId, quantity) {
+    $.post('{% url 'add_to_cart' %}', {
+        product_id: productId,
+        quantity: quantity,
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }, function(data) {
+        if(data.success) {
+            updateCartDisplay();
+        }
+    });
+}
+
+function removeFromCart(productId) {
+    const url = `/pos/remove-from-cart/${productId}/`;  // construct URL with productId
+    $.post(url, {
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }, function(data) {
+        if(data.success) {
+            updateCartDisplay();
+        }
+    });
+}
+
+
+function updateCartDisplay() {
+    $.get('{% url 'pos' %}', function(data) {
+        const cartHtml = $(data).find('#cartTable tbody').html();
+        const summaryHtml = $(data).find('#cartSummary').html();
+        
+        $('#cartTable tbody').html(cartHtml);
+        $('#cartSummary').html(summaryHtml);
+    });
+}
+</script>
+{% endblock %}

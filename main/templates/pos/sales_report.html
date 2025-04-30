@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-light">
+        <h5>Sales Reports</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="date" name="start_date" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="end_date" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Total Sales</th>
+                        <th>Cash</th>
+                        <th>Card</th>
+                        <th>Mobile</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in daily_sales %}
+                    <tr>
+                        <td>{{ day.date }}</td>
+                        <td>${{ day.total }}</td>
+                        <td>${{ day.cash }}</td>
+                        <td>${{ day.card }}</td>
+                        <td>${{ day.mobile }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

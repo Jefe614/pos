@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Create Account</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    {{ error }}<br>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required id="id_username">
+                        <small class="text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required id="id_email">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password1" class="form-label">Password</label>
+                        <input type="password" name="password1" class="form-control" required id="id_password1">
+                        <small class="text-muted">
+                            <ul>
+                                <li>Your password can't be too similar to your other personal information.</li>
+                                <li>Your password must contain at least 8 characters.</li>
+                                <li>Your password can't be a commonly used password.</li>
+                                <li>Your password can't be entirely numeric.</li>
+                            </ul>
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password2" class="form-label">Password confirmation</label>
+                        <input type="password" name="password2" class="form-control" required id="id_password2">
+                        <small class="text-muted">Enter the same password as before, for verification.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                Already have an account? <a href="{% url 'login' %}">Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

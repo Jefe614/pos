@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Main Receipt Card -->
+    <div class="card receipt-card" style="max-width: 500px; margin: 0 auto; border: 1px solid #ddd;">
+        <!-- Receipt Header -->
+        <div class="card-header bg-white text-center py-3 border-bottom">
+            <h2 class="mb-0" style="font-family: 'Courier New', monospace;">STORE NAME</h2>
+            <p class="mb-0 text-muted" style="font-size: 0.9rem;">123 Main Street, City</p>
+            <p class="mb-0 text-muted" style="font-size: 0.9rem;">Phone: (123) 456-7890</p>
+        </div>
+        
+        <!-- Receipt Body -->
+        <div class="card-body p-0">
+            <!-- Receipt Info -->
+            <div class="receipt-info p-3 border-bottom">
+                <div class="row">
+                    <div class="col-6">
+                        <p class="mb-1"><strong>Receipt #:</strong> {{ sale.receipt.receipt_number|default:sale.id }}</p>
+                        <p class="mb-1"><strong>Date:</strong> {{ sale.created_at|date:"m/d/Y" }}</p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <p class="mb-1"><strong>Time:</strong> {{ sale.created_at|date:"h:i A" }}</p>
+                        <p class="mb-1"><strong>Cashier:</strong> {{ sale.cashier.first_name|first }}.</p>
+                    </div>
+                </div>
+                {% if sale.customer %}
+                <p class="mb-0 mt-2"><strong>Customer:</strong> {{ sale.customer.name }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Items List -->
+            <div class="receipt-items p-3 border-bottom">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr class="border-top-0">
+                            <th class="border-0" style="width: 50%">ITEM</th>
+                            <th class="border-0 text-center" style="width: 15%">QTY</th>
+                            <th class="border-0 text-end" style="width: 20%">PRICE</th>
+                            <th class="border-0 text-end" style="width: 15%">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.items.all %}
+                        <tr>
+                            <td class="py-1">{{ item.product.name }}</td>
+                            <td class="text-center py-1">{{ item.quantity }}</td>
+                            <td class="text-end py-1">Ksh {{ item.price|floatformat:2 }}</td>
+                            <td class="text-end py-1">Ksh {{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Payment Summary -->
+            <div class="receipt-summary p-3">
+                <table class="table table-sm mb-2">
+                    <tr>
+                        <td class="border-0 py-1"><strong>Subtotal:</strong></td>
+                        <td class="border-0 text-end py-1">Ksh {{ sale.subtotal|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="border-0 py-1"><strong>Tax (10%):</strong></td>
+                        <td class="border-0 text-end py-1">Ksh {{ sale.tax|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="border-0 py-1"><strong>Discount:</strong></td>
+                        <td class="border-0 text-end py-1">Ksh {{ sale.discount|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="table-active">
+                        <td class="border-0 py-1"><strong>TOTAL:</strong></td>
+                        <td class="border-0 text-end py-1"><strong>Ksh {{ sale.total|floatformat:2 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="border-0 py-1"><strong>Payment Method:</strong></td>
+                        <td class="border-0 text-end py-1">{{ sale.get_payment_method_display }}</td>
+                    </tr>
+                    <tr>
+                        <td class="border-0 py-1"><strong>Amount Paid:</strong></td>
+                        <td class="border-0 text-end py-1">Ksh {{ sale.amount_paid|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td class="border-0 py-1"><strong>Change:</strong></td>
+                        <td class="border-0 text-end py-1">Ksh {{ sale.change|floatformat:2 }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Receipt Footer -->
+        <div class="card-footer bg-white text-center py-3">
+            <p class="mb-1">Thank you for shopping with us!</p>
+            <p class="mb-0 text-muted" style="font-size: 0.8rem;">
+                {{ sale.created_at|date:"m/d/Y h:i A" }} • 
+                Receipt #{{ sale.receipt.receipt_number|default:sale.id }}
+            </p>
+            {% if sale.customer %}
+            <p class="mb-0 text-muted" style="font-size: 0.8rem;">
+                Customer: {{ sale.customer.name }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-4 text-center no-print">
+        <button onclick="window.print()" class="btn btn-primary me-2">
+            <i class="bi bi-printer-fill"></i> Print Receipt
+        </button>
+        <a href="{% url 'pos' %}" class="btn btn-success">
+            <i class="bi bi-cart-plus"></i> New Sale
+        </a>
+    </div>
+</div>
+
+<style>
+    .receipt-card {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        font-family: 'Courier New', monospace;
+    }
+    .receipt-info {
+        background-color: #f8f9fa;
+    }
+    .receipt-items {
+        font-size: 0.9rem;
+    }
+    .receipt-summary {
+        background-color: #f8f9fa;
+        border-top: 2px dashed #ddd;
+    }
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .receipt-card, .receipt-card * {
+            visibility: visible;
+        }
+        .receipt-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: 100%;
+            border: none;
+            box-shadow: none;
+        }
+        .no-print {
+            display: none !important;
+        }
+        @page {
+            size: auto;
+            margin: 0;
+        }
+    }
+</style>
+{% endblock %}

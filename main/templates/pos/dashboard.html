@@ -11,7 +11,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Today's Sales</h5>
-                    <h2 class="card-text">${{ today_sales|intcomma }}</h2>
+                    <h2 class="card-text">Ksh {{ today_sales|floatformat:2|intcomma }}</h2>
                     <p class="card-text">{{ today_transactions }} transactions</p>
                 </div>
             </div>
@@ -21,7 +21,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Weekly Sales</h5>
-                    <h2 class="card-text">${{ weekly_sales|intcomma }}</h2>
+                    <h2 class="card-text">Ksh {{ weekly_sales|floatformat:2|intcomma }}</h2>
                     <p class="card-text">{{ weekly_transactions }} transactions</p>
                 </div>
             </div>
@@ -31,7 +31,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5 class="card-title">Monthly Sales</h5>
-                    <h2 class="card-text">${{ monthly_sales|intcomma }}</h2>
+                    <h2 class="card-text">Ksh {{ monthly_sales|floatformat:2|intcomma }}</h2>
                     <p class="card-text">{{ monthly_transactions }} transactions</p>
                 </div>
             </div>
@@ -74,20 +74,20 @@
                             <tbody>
                                 {% for sale in recent_sales %}
                                 <tr>
-                                    <td>{{ sale.receipt.receipt_number }}</td>
-                                    <td>{{ sale.created_at|time }}</td>
+                                    <td>{{ sale.receipt.receipt_number|default:sale.id }}</td>
+                                    <td>{{ sale.created_at|time:"h:i A" }}</td>
                                     <td>{{ sale.customer.name|default:"Walk-in" }}</td>
-                                    <td>${{ sale.total|floatformat:2 }}</td>
+                                    <td>Ksh {{ sale.total|floatformat:2|intcomma }}</td>
                                     <td>
                                         <span class="badge 
                                             {% if sale.payment_method == 'cash' %}bg-success
                                             {% elif sale.payment_method == 'card' %}bg-primary
-                                            {% else %}bg-info{% endif %}">
+                                            {% elif sale.payment_method == 'mobile' %}bg-info{% endif %}">
                                             {{ sale.get_payment_method_display }}
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <a href="{% url 'receipt' sale.receipt.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <a href="{% url 'receipt' sale.id %}" class="btn btn-sm btn-outline-secondary">
                                             View
                                         </a>
                                     </td>
@@ -116,7 +116,7 @@
                 <div class="card-body">
                     <div class="list-group">
                         {% for product in low_stock %}
-                        <a href="{% url 'product_list' %}" class="list-group-item list-group-item-action">
+                        <a href="{% url 'product_detail' product.id %}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ product.name }}</h6>
                                 <small class="text-danger">{{ product.stock }} left</small>
@@ -159,7 +159,6 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
-    // Any dashboard-specific JavaScript can go here
     console.log("Dashboard ready");
 });
 </script>

@@ -5,9 +5,14 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Product Management</h2>
-        <a href="{% url 'add_product' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Add Product
-        </a>
+        <div>
+            <a href="{% url 'pos' %}" class="btn btn-success me-2">
+                <i class="bi bi-cart"></i> POS
+            </a>
+            <a href="{% url 'add_product' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Product
+            </a>
+        </div>
     </div>
 
     <!-- Search and Filter -->
@@ -57,6 +62,7 @@
                             <th>Price</th>
                             <th>Cost</th>
                             <th>Stock</th>
+                            <th>Add to POS</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -64,10 +70,13 @@
                         {% for product in products %}
                         <tr>
                             <td>
+                                {% if product.barcode %}
+                                <small class="text-muted">{{ product.barcode }}</small>
                                 {% if product.barcode_image %}
-                                <img src="{{ product.barcode_image.url }}" alt="Barcode for {{ product.name }}" class="img-thumbnail" style="width: 80px; height: auto;">
+                                <img src="{{ product.barcode_image.url }}" alt="Barcode" class="img-thumbnail mt-1" style="width: 80px; height: auto;">
+                                {% endif %}
                                 {% else %}
-                                <span>No barcode</span>
+                                <span class="text-muted">No barcode</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -81,8 +90,8 @@
                             </td>
                             <td>{{ product.name }}</td>
                             <td>{{ product.category.name|default:"-" }}</td>
-                            <td>${{ product.price }}</td>
-                            <td>${{ product.cost }}</td>
+                            <td>Ksh {{ product.price }}</td>
+                            <td>Ksh {{ product.cost }}</td>
                             <td>
                                 <span class="badge 
                                     {% if product.stock == 0 %}bg-danger
@@ -90,6 +99,25 @@
                                     {% else %}bg-success{% endif %}">
                                     {{ product.stock }}
                                 </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <input type="number" 
+                                           class="form-control form-control-sm qty-input" 
+                                           value="1" 
+                                           min="1" 
+                                           max="{{ product.stock }}"
+                                           style="width: 60px; margin-right: 5px;"
+                                           id="qty-{{ product.id }}">
+                                    <button class="btn btn-sm btn-success add-to-cart-btn" 
+                                            data-id="{{ product.id }}"
+                                            data-name="{{ product.name }}"
+                                            data-price="{{ product.price }}"
+                                            data-barcode="{{ product.barcode }}"
+                                            {% if product.stock == 0 %}disabled{% endif %}>
+                                        <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 <div class="d-flex gap-2">
@@ -110,7 +138,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 No products found. <a href="{% url 'add_product' %}">Add your first product</a>
                             </td>
                         </tr>
@@ -126,12 +154,12 @@
                     {% if products.has_previous %}
                     <li class="page-item">
                         <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" aria-label="First">
-                            <span aria-hidden="true">&laquo;&laquo;</span>
+                            <span aria-hidden="true">««</span>
                         </a>
                     </li>
                     <li class="page-item">
                         <a class="page-link" href="?page={{ products.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
+                            <span aria-hidden="true">«</span>
                         </a>
                     </li>
                     {% endif %}
@@ -149,12 +177,12 @@
                     {% if products.has_next %}
                     <li class="page-item">
                         <a class="page-link" href="?page={{ products.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
+                            <span aria-hidden="true">»</span>
                         </a>
                     </li>
                     <li class="page-item">
                         <a class="page-link" href="?page={{ products.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}" aria-label="Last">
-                            <span aria-hidden="true">&raquo;&raquo;</span>
+                            <span aria-hidden="true">»»</span>
                         </a>
                     </li>
                     {% endif %}
@@ -164,9 +192,14 @@
         </div>
     </div>
 </div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+
 <script>
 $(document).ready(function() {
     // Confirm before deleting
@@ -177,27 +210,88 @@ $(document).ready(function() {
         }
     });
 
-    // Quick stock edit
-    $('.stock-value').on('click', function() {
-        const productId = $(this).data('product-id');
-        const currentStock = $(this).text().trim();
-        
-        $(this).html(`
-            <input type="number" class="form-control form-control-sm" 
-                   value="${currentStock}" style="width: 70px;">
-            <button class="btn btn-sm btn-success ms-2 save-stock">Save</button>
+    // Add to Cart functionality
+    $(document).on('click', '.add-to-cart-btn', function() {
+        console.log('Adding to cart...');
+        const productId = $(this).data('id');
+        const productName = $(this).data('name');
+        const quantity = parseInt($(this).siblings('.qty-input').val()) || 1;
+        const price = $(this).data('price');
+        const barcode = $(this).data('barcode');
+
+        $.ajax({
+            url: '{% url "add_to_cart" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                product_id: productId,
+                quantity: quantity
+            }),
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                console.log('Add to cart response:', response);
+                if (response.success) {
+                    showToast(`${quantity} × ${productName} added to cart`, 'success');
+                    
+                    // Update stock display
+                    const stockBadge = $(`.add-to-cart-btn[data-id="${productId}"]`).closest('tr').find('.badge');
+                    const currentStock = parseInt(stockBadge.text());
+                    const newStock = currentStock - quantity;
+                    stockBadge.text(newStock);
+                    
+                    // Update badge color
+                    stockBadge.removeClass('bg-danger bg-warning bg-success');
+                    if (newStock === 0) {
+                        stockBadge.addClass('bg-danger');
+                        $(`.add-to-cart-btn[data-id="${productId}"]`).prop('disabled', true);
+                        $(`#qty-${productId}`).val(0).prop('disabled', true);
+                    } else if (newStock < 5) {
+                        stockBadge.addClass('bg-warning text-dark');
+                    } else {
+                        stockBadge.addClass('bg-success');
+                    }
+                    
+                    // Update input max value
+                    $(`#qty-${productId}`).attr('max', newStock);
+                } else {
+                    showToast(response.error || 'Error adding to cart', 'danger');
+                }
+            },
+            error: function(xhr) {
+                console.error('Add to cart error:', xhr.responseJSON);
+                showToast('Error adding to cart: ' + (xhr.responseJSON?.error || 'Unknown error'), 'danger');
+            }
+        });
+    });
+
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        const toast = $(`
+            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
         `);
         
-        $(this).find('.save-stock').on('click', function() {
-            const newStock = $(this).siblings('input').val();
-            // AJAX call to update stock
-            $.post(`/products/${productId}/update-stock/`, {
-                stock: newStock,
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            }, function(data) {
-                location.reload();
-            });
+        $('#toastContainer').append(toast);
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+        
+        // Remove toast after it hides
+        toast.on('hidden.bs.toast', function() {
+            $(this).remove();
         });
+    }
+
+    // Disable add button for out-of-stock items on page load
+    $('.badge.bg-danger').each(function() {
+        const productId = $(this).closest('tr').find('.add-to-cart-btn').data('id');
+        $(`#qty-${productId}`).val(0).prop('disabled', true);
+        $(this).closest('tr').find('.add-to-cart-btn').prop('disabled', true);
     });
 });
 </script>

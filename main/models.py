@@ -49,6 +49,7 @@ class Sale(models.Model):
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     change = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     completed = models.BooleanField(default=False)
+    
 
     def save(self, *args, **kwargs):
         self.total = self.subtotal + self.tax - self.discount

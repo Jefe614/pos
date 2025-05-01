@@ -3,6 +3,7 @@ from . import views
 from django.contrib.auth import views as auth_views
 
 
+
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('pos/', views.pos, name='pos'),
@@ -11,6 +12,8 @@ urlpatterns = [
     path('pos/clear-cart/', views.clear_cart, name='clear_cart'),
     path('pos/product-by-barcode/', views.product_by_barcode, name='product_by_barcode'),
     path('receipt/<int:receipt_id>/', views.receipt, name='receipt'),
+    path('pos/apply-discount/', views.apply_discount, name='apply_discount'),
+    
     
     # Reports
     path('reports/sales/', views.sales_report, name='sales_report'),

@@ -8,6 +8,8 @@ from reportlab.graphics import renderPM
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from io import BytesIO
+from reportlab.graphics.shapes import Drawing
+
 
 class ProductForm(forms.ModelForm):
     class Meta:
@@ -18,15 +20,25 @@ class ProductForm(forms.ModelForm):
             'cost': forms.NumberInput(attrs={'step': '0.01'}),
         }
 
+    def clean_barcode(self):
+        barcode = self.cleaned_data.get('barcode')
+        if barcode:
+            qs = Product.objects.filter(barcode=barcode)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("This barcode already exists.")
+        return barcode
+
     def generate_barcode_image(self, barcode):
-        # Create a barcode using code128
         barcode_obj = code128.Code128(barcode, barWidth=0.5, barHeight=40)
+        drawing = Drawing(200, 50)
+        drawing.add(barcode_obj)
 
-        # Render the barcode into a PNG image
+        image_data = renderPM.drawToPIL(drawing)
         buffer = BytesIO()
-        renderPM.drawToFile(barcode_obj, buffer, fmt='PNG')
+        image_data.save(buffer, format='PNG')
 
-        # Save the image to the file system
         barcode_filename = f'product_{barcode}.png'
         barcode_file = ContentFile(buffer.getvalue())
         file_path = default_storage.save(f'barcodes/{barcode_filename}', barcode_file)
@@ -36,17 +48,21 @@ class ProductForm(forms.ModelForm):
         product = super().save(commit=False)
         
         if not product.barcode:
-            product.save()  # Save to generate an ID
+            # Save temporarily to generate ID
+            temp_save = not commit
+            product.save()  # Generates ID
             product.barcode = f"PRD{product.id:06d}"
-            
+
             # Generate and save the barcode image
             barcode_image_path = self.generate_barcode_image(product.barcode)
-            product.barcode_image = barcode_image_path  # Assuming you have a barcode_image field in your model
-            
-            if commit:
-                product.save()
+            product.barcode_image = barcode_image_path
+        
+        if commit:
+            product.save()
+            self.save_m2m()  # To ensure m2m relationships are saved
         
         return product
+
 
 class CustomerForm(forms.ModelForm):
     class Meta:

@@ -548,17 +548,17 @@ def product_list(request):
         'categories': Category.objects.all()
     })
 
-@login_required
 def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect('product_list')
+        else:
+            print(form.errors)  # Log errors to console for debugging
     else:
         form = ProductForm()
     return render(request, 'pos/product_form.html', {'form': form})
-
 @login_required
 def edit_product(request, pk):
     product = get_object_or_404(Product, pk=pk)

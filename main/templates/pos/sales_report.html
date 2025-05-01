@@ -6,20 +6,59 @@
         <h5>Sales Reports</h5>
         <form method="get" class="row g-3">
             <div class="col-md-3">
-                <input type="date" name="start_date" class="form-control">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
             </div>
             <div class="col-md-3">
-                <input type="date" name="end_date" class="form-control">
+                <label for="end_date">End Date</label>
+                <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
             </div>
             <div class="col-md-2">
+                <label class="d-block" style="visibility: hidden;">Filter</label>
                 <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </form>
     </div>
+    
     <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Sales</h5>
+                        <h3>Ksh {{ overall_total|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Cash</h5>
+                        <h3>Ksh {{ cash_total|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Card</h5>
+                        <h3>Ksh {{ card_total|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Mobile</h5>
+                        <h3>Ksh {{ mobile_total|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="table-responsive">
-            <table class="table">
-                <thead>
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
                     <tr>
                         <th>Date</th>
                         <th>Total Sales</th>
@@ -31,14 +70,27 @@
                 <tbody>
                     {% for day in daily_sales %}
                     <tr>
-                        <td>{{ day.date }}</td>
-                        <td>${{ day.total }}</td>
-                        <td>${{ day.cash }}</td>
-                        <td>${{ day.card }}</td>
-                        <td>${{ day.mobile }}</td>
+                        <td>Ksh {{ day.date|date:"M d, Y" }}</td>
+                        <td>Ksh{{ day.total|floatformat:2 }}</td>
+                        <td>Ksh {{ day.cash|floatformat:2 }}</td>
+                        <td>Ksh {{ day.card|floatformat:2 }}</td>
+                        <td>Ksh {{ day.mobile|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No sales data available for the selected period</td>
                     </tr>
                     {% endfor %}
                 </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th>Total</th>
+                        <th>Ksh {{ overall_total|floatformat:2 }}</th>
+                        <th>Ksh {{ cash_total|floatformat:2 }}</th>
+                        <th>Ksh {{ card_total|floatformat:2 }}</th>
+                        <th>Ksh {{ mobile_total|floatformat:2 }}</th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>

@@ -499,24 +499,75 @@ def generate_pdf_receipt(sale):
     return response
 @login_required
 def sales_report(request):
-    date_from = request.GET.get('date_from', (timezone.now() - timedelta(days=30)).date())
-    date_to = request.GET.get('date_to', timezone.now().date())
+    # Get date parameters from the request, defaulting to last 30 days
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
     
+    # Process date strings to datetime objects
+    if start_date:
+        start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+    else:
+        start_date = (timezone.now() - timedelta(days=0)).date()
+        
+    if end_date:
+        end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        end_date = timezone.now().date()
+    
+    # Query sales within date range
     sales = Sale.objects.filter(
-        created_at__date__range=[date_from, date_to],
+        created_at__date__range=[start_date, end_date],
         completed=True
-    ).values('created_at__date').annotate(
-        total_sales=Sum('total'),
-        transaction_count=Count('id')
-    ).order_by('created_at__date')
+    )
+    
+    # Group sales by date and payment method
+    daily_sales = []
+    
+    # Get all unique dates in the range
+    current_date = start_date
+    while current_date <= end_date:
+        # Filter sales for this date
+        day_sales = sales.filter(created_at__date=current_date)
+        
+        # Calculate totals by payment method
+        cash_total = day_sales.filter(payment_method='cash').aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+        card_total = day_sales.filter(payment_method='card').aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+        mobile_total = day_sales.filter(payment_method='mobile').aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+        
+        # Calculate day total
+        day_total = cash_total + card_total + mobile_total
+        
+        # Skip days with no sales if you want
+        # if day_total > 0:
+        daily_sales.append({
+            'date': current_date,
+            'total': day_total,
+            'cash': cash_total,
+            'card': card_total,
+            'mobile': mobile_total
+        })
+        
+        # Move to next day
+        current_date += timedelta(days=1)
+    
+    # Calculate overall totals
+    overall_total = sum(day['total'] for day in daily_sales)
+    cash_total = sum(day['cash'] for day in daily_sales)
+    card_total = sum(day['card'] for day in daily_sales)
+    mobile_total = sum(day['mobile'] for day in daily_sales)
+    transaction_count = sales.count()
     
     context = {
-        'sales': sales,
-        'date_from': date_from,
-        'date_to': date_to,
-        'total': sum(sale['total_sales'] for sale in sales),
-        'transaction_count': sum(sale['transaction_count'] for sale in sales)
+        'daily_sales': daily_sales,
+        'start_date': start_date,
+        'end_date': end_date,
+        'overall_total': overall_total,
+        'cash_total': cash_total,
+        'card_total': card_total,
+        'mobile_total': mobile_total,
+        'transaction_count': transaction_count
     }
+    
     return render(request, 'pos/sales_report.html', context)
 
 @login_required
